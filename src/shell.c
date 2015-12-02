@@ -23,10 +23,16 @@ void host_command(int, char **);
 void help_command(int, char **);
 void host_command(int, char **);
 void mmtest_command(int, char **);
+
 void test_command(int, char **);
+void new_command(int, char **);
+
 void _command(int, char **);
 
+int fibn(int , int ,int);
+
 #define MKCL(n, d) {.name=#n, .fptr=n ## _command, .desc=d}
+char pwd[20] = "/romfs/"; //current  directory
 
 cmdlist cl[]={
 	MKCL(ls, "List directory"),
@@ -37,6 +43,7 @@ cmdlist cl[]={
 	MKCL(mmtest, "heap memory allocation test"),
 	MKCL(help, "help"),
 	MKCL(test, "test new function"),
+	MKCL(new, "create new task."),
 	MKCL(, ""),
 };
 
@@ -62,18 +69,41 @@ int parse_command(char *str, char *argv[]){
 }
 
 void ls_command(int n, char *argv[]){
-    fio_printf(1,"\r\n"); 
-    int dir;
-    if(n == 0){
-        dir = fs_opendir("");
-    }else if(n == 1){
-        dir = fs_opendir(argv[1]);
-        //if(dir == )
-    }else{
-        fio_printf(1, "Too many argument!\r\n");
-        return;
-    }
-(void)dir;   // Use dir
+//     fio_printf(1,"\r\n");
+//     int dir =fs_opendir(pwd);
+//     if(n == 0){
+//         dir = fs_opendir(pwd);
+//     }else if(n == 1){
+//         dir = fs_opendir(argv[1]);
+//         //if(dir == )
+//     }else{
+//         fio_printf(1, "Too many argument!\r\n");
+//         return;
+//     }
+// (void)dir;   // Use dir
+
+ /////////////////////////////////////
+ 	 fio_printf(1,"\r\n");
+     int dir;
+     if(n == 1){
+         dir = fs_opendir(pwd);
+         if(dir == -2) fio_printf(1, "error1\r\n");
+         if(dir == -1) fio_printf(1, "error1\r\n");
+     }else if(n == 2){
+         char path[20] = "";
+         strcpy(path, pwd);
+         strcat(path, argv[1]) ;
+         dir = fs_opendir(path);
+         if(dir == -2) fio_printf(1, "error2\r\n");
+         if(dir == -1) fio_printf(1, "error2\r\n");
+     }else{
+         fio_printf(1, "Too many argument!\r\n");
+         return;
+     }
+
+     (void) dir;
+
+
 }
 
 int filedump(const char *filename){
@@ -160,11 +190,26 @@ void help_command(int n,char *argv[]){
 	}
 }
 
+
+
 void test_command(int n, char *argv[]) {
     int handle;
     int error;
 
+    
+
+    // fio_printf(1, "test now!\n");
+
+    int fibn_num = 10;
+    int fibn_result = 0;
+    char fibn_output[64];
+
+    fibn_result = fibn( fibn_num,0, 1);
+    sprintf(fibn_output, "%d", fibn_result);
+    fio_printf(1, "fibn_result = %s\n", fibn_output);
+
     fio_printf(1, "\r\n");
+    //////////////////////////////////////
     
     handle = host_action(SYS_SYSTEM, "mkdir -p output");
     handle = host_action(SYS_SYSTEM, "touch output/syslog");
@@ -186,6 +231,20 @@ void test_command(int n, char *argv[]) {
     host_action(SYS_CLOSE, handle);
 }
 
+
+//new_command ////////////
+void vNew_task(void *pvParameters){
+	while(1) ;
+}
+
+void new_command(int n, char *argv[]) {
+	fio_printf(1, "\r\n");
+
+	xTaskCreate( vNew_task,  (signed portCHAR *) "NEW",
+			128, NULL, 1, NULL);
+	fio_printf(1, "Testing task create success.\n\r");
+}
+
 void _command(int n, char *argv[]){
     (void)n; (void)argv;
     fio_printf(1, "\r\n");
@@ -200,4 +259,13 @@ cmdfunc *do_command(const char *cmd){
 			return cl[i].fptr;
 	}
 	return NULL;	
+}
+
+// fibn 
+int fibn( int n, int a, int b)
+{
+	if( n == 0 )	return a;
+	if( n == 1 )	return b;
+
+	return	fibn(n-1, b, a+b);
 }

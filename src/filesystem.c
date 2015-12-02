@@ -75,10 +75,10 @@ int fs_opendir(const char * path){
         return root_opendir();
     }
     
-    while (path[0] == '/')
+    while (path[0] == '/') //去頭
         path++;
     
-    slash = strchr(path, '/');
+    slash = strchr(path, '/'); //去尾
     if (!slash)
         slash = path + strlen(path);
 

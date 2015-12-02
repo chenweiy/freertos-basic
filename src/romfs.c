@@ -14,8 +14,13 @@ struct romfs_fds_t {
     uint32_t size;
 };
 
+//collin
+extern size_t fio_printf(int fd, const char *format, ...);
+
 static struct romfs_fds_t romfs_fds[MAX_FDS];
 
+//將int8的值還原成int32，由此可知get_unaligned(meta)為hash code、get_unaligned(meta+4)為file size，
+//+8的意思為將meta移動兩個4byte(儲存hash code和file size的空間)
 static uint32_t get_unaligned(const uint8_t * d) {
     return ((uint32_t) d[0]) | ((uint32_t) (d[1] << 8)) | ((uint32_t) (d[2] << 16)) | ((uint32_t) (d[3] << 24));
 }
@@ -104,7 +109,29 @@ static int romfs_open(void * opaque, const char * path, int flags, int mode) {
     return r;
 }
 
+//collin
+static int romfs_ls(void * opaque, const char * path) {
+    uint32_t h = hash_djb2((const uint8_t *) path, -1);
+    const uint8_t * romfs = (const uint8_t *) opaque;
+    int r = -1;
+
+    const uint8_t * meta;
+
+    for (meta = romfs; get_unaligned(meta) && get_unaligned(meta + 4); meta += get_unaligned(meta + 4) + 12) {
+        if (get_unaligned(meta+8) == h) {		//hash_path position
+            char name[256];
+            for(int i =0; i<256; i++){
+                if(!(*(name+i) = *(meta+12+i))) break;
+            }
+            fio_printf(1, name);
+            fio_printf(1, "\r\n");
+            r = 1;
+        }
+    }
+	return r;
+}
+
 void register_romfs(const char * mountpoint, const uint8_t * romfs) {
 //    DBGOUT("Registering romfs `%s' @ %p\r\n", mountpoint, romfs);
-    register_fs(mountpoint, romfs_open, NULL, (void *) romfs);
+    register_fs(mountpoint, romfs_open, romfs_ls, (void *) romfs);
 }
